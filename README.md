@@ -16,6 +16,15 @@ Hosting the FIFA World Cup 2026 involves coordinating tens of thousands of spect
 2. **Reactive Management**: Command centers act *after* a bottleneck or gate gridlock has already occurred, leading to long queues and security risks.
 3. **No Explainable AI**: Standard chatbot tools act as generic Q&A agents without access to live venue parameters, offering no decision support to operators.
 
+### Chosen Verticals & Alignment
+To directly solve the hackathon problem statement, FIFAFlow AI explicitly targets the following required verticals:
+- **Crowd Management & Operational Intelligence**: A Digital Twin State Manager that simulates gate gridlocks via the "What-If" engine.
+- **Navigation & Accessibility**: A smart Pathfinder engine that explicitly routes fans away from bottlenecks and offers stair-free wheelchair accessible paths.
+- **Real-Time Decision Support**: An Interactive Operations Copilot (Gemini) that provides instant triage and volunteer dispatch logic for incoming emergency incidents.
+- **Multilingual Assistance**: A seamless voice translator for international fans to bypass language barriers.
+- **Transportation Intelligence**: Real-time transit predictions including parking forecasts, shuttle schedules, metro delay tracking, and post-match exit rush analysis.
+- **Sustainability Analytics**: Time-series energy, water, waste, and carbon footprint monitoring with AI-generated optimisation recommendations.
+
 ### Our Innovation: FIFAFlow AI
 FIFAFlow AI introduces a live **Digital Twin State Manager** synchronized with a **Redis Event Engine** and **Gemini API**. It proactively predicts surges, simulates hypothetical scenarios via a "What-If" engine, suggests operational volunteer dispatches, and routes users around bottlenecks.
 
@@ -90,6 +99,9 @@ FIFAFlow AI introduces a live **Digital Twin State Manager** synchronized with a
 * **Frontend**: React (Vite), TypeScript, Tailwind CSS, Recharts, Leaflet.js map layer, Framer Motion animations.
 * **Backend**: FastAPI (Python), SQLAlchemy ORM, SQLite/PostgreSQL, Redis event streaming.
 * **AI Model**: Google Gemini 1.5 Flash (via direct REST API endpoint structure).
+* **Infrastructure**: Docker Compose (multi-container), Nginx reverse proxy, PostgreSQL 15, Redis 7.
+* **Testing**: Pytest with pytest-asyncio, FastAPI TestClient.
+* **Security**: JWT (Access + Refresh tokens), bcrypt password hashing, RBAC, CSP headers, rate limiting.
 
 ---
 
@@ -99,29 +111,41 @@ FIFAFlow AI introduces a live **Digital Twin State Manager** synchronized with a
 36 FIFA FlowAI/
 ├── docker-compose.yml
 ├── README.md
+├── CONTRIBUTING.md
+├── LICENSE
+├── pyproject.toml
 ├── .env.example
 ├── backend/
 │   ├── Dockerfile
 │   ├── requirements.txt
 │   ├── main.py
 │   ├── app/
+│   │   ├── __init__.py
 │   │   ├── core/ (config, db, security, event_engine, observability)
 │   │   ├── models/ (SQLAlchemy models)
-│   │   ├── schemas/ (Pydantic validation schemas)
+│   │   ├── schemas/ (Pydantic validation schemas with Literal types)
 │   │   ├── services/ (gemini, pathfinder routing, simulator)
 │   │   └── routes/ (auth, twin, incidents, copilot, transport, translate)
 │   └── tests/ (auth, routing path tests)
-└── frontend/
-    ├── Dockerfile
-    ├── nginx.conf
-    ├── package.json
-    ├── tailwind.config.js
-    └── src/
-        ├── App.tsx
-        ├── main.tsx
-        ├── index.css
-        ├── contexts/ (Theme & accessibility contexts)
-        └── components/ (CommandCenter, Leaflet twin map, access panels, translation tool)
+├── frontend/
+│   ├── Dockerfile
+│   ├── nginx.conf
+│   ├── package.json
+│   ├── tailwind.config.js
+│   └── src/
+│       ├── App.tsx
+│       ├── main.tsx
+│       ├── index.css
+│       ├── contexts/ (Theme & accessibility contexts)
+│       └── components/ (CommandCenter, Leaflet twin map, access panels, translation tool)
+└── tests/
+    ├── conftest.py
+    ├── test_api.py
+    ├── test_auth.py
+    ├── test_engine.py
+    ├── test_security.py
+    ├── test_routes_coverage.py
+    └── test_websocket.py
 ```
 
 ---
@@ -175,6 +199,11 @@ FIFAFlow AI introduces a live **Digital Twin State Manager** synchronized with a
 3. Open browser at:
    `http://localhost:5173` (proxies `/api` calls to port `8000` automatically).
 
+### API Documentation
+FastAPI automatically generates interactive API documentation:
+- **Swagger UI**: `http://localhost:8000/docs`
+- **ReDoc**: `http://localhost:8000/redoc`
+
 ---
 
 ## 8. Enterprise Observability & Security
@@ -183,27 +212,62 @@ FIFAFlow AI introduces a live **Digital Twin State Manager** synchronized with a
 * **Double Token Security**: Implements JWT Access and Refresh tokens for session safety.
 * **Role-Based Authorizations**: Decorators lock organizer and staff features against unauthorized visitor actions.
 * **Robust Fallback Engine**: If Gemini is offline, rule-based heuristics generate static responses, preserving map routing and digital twin functionality.
+* **Security Headers**: X-Content-Type-Options, X-Frame-Options, Strict-Transport-Security, Content-Security-Policy, Referrer-Policy, Permissions-Policy.
+* **Rate Limiting**: Sliding-window rate limiter on authentication endpoints to prevent brute-force attacks.
+* **Input Validation**: Pydantic schemas with `Literal` types enforce strict enum validation on severity levels, incident types, and user roles. Password minimum length enforced.
 
 ---
 
 ## 9. Accessibility Features
 
+* **Skip Navigation**: Keyboard-accessible skip-to-content link for screen reader and keyboard users.
+* **ARIA Live Regions**: Real-time error and success banners use `aria-live="assertive"` and `aria-live="polite"` for screen reader announcements.
+* **Focus Indicators**: Custom `:focus-visible` outlines on all interactive elements for keyboard navigation.
 * **Dyslexia Mode**: Uses high contrast sans-serif layout variables with increased letter spacing.
-* **Colorblind Assister**: Overlay matrices adjusting colors for Deuteranopia, Protanopia, and Tritanopia.
-* **Visual Video Sign Avatar**: CSS/SVG loop translating audio alerts into sign indicators.
+* **Colorblind Assister**: SVG overlay filter matrices adjusting colors for Deuteranopia, Protanopia, and Tritanopia.
+* **High Contrast Mode**: One-click contrast and saturation boost for low vision users.
+* **Semantic HTML**: Proper heading hierarchy (`<h1>` per page), `<main>` landmark, `role="tablist"`, and `aria-selected` attributes throughout.
 
 ---
 
 ## 10. Verification Tests
-Run backend tests using:
+
+Run the full backend test suite using:
 ```bash
-pytest backend/tests/
+pytest tests/ -v
 ```
-Matches check password hashers, route algorithms, and mock Gemini fallback structures.
+
+### Test Coverage Summary
+
+| Test File | Coverage Area | Tests |
+|---|---|---|
+| `test_api.py` | Auth registration, login, twin nodes, navigation, incidents | 5 |
+| `test_auth.py` | Password hashing, JWT generation/decoding | 2 |
+| `test_engine.py` | Route optimizer, accessibility routing, Gemini fallback | 3 |
+| `test_security.py` | Password hashing, token creation, security headers | 3 |
+| `test_routes_coverage.py` | Translation, copilot, volunteers, sustainability, transport, edge cases | 17 |
+| `test_websocket.py` | WebSocket handshake, heartbeat | 2 |
+
+**Total: 32 tests** covering all API endpoints, AI fallback logic, security mechanisms, and edge cases.
 
 ---
 
-## 11. Platform Interface Screenshots
+## 11. Evaluation Criteria Alignment Matrix
+
+| Hackathon Vertical | FIFAFlow AI Implementation | Key Files |
+|---|---|---|
+| **Navigation** | Dijkstra pathfinder with congestion-weighted edges | `route_optimizer.py`, `navigation.py` |
+| **Crowd Management** | Digital Twin with live occupancy, What-If simulator | `simulator.py`, `twin.py`, `copilot.py` |
+| **Accessibility** | Wheelchair routing, dyslexia mode, colorblind filters, skip-nav, ARIA | `AccessAssistant.tsx`, `ThemeContext.tsx`, `index.css` |
+| **Transportation** | Parking forecasts, shuttle/metro tracking, exit rush predictions | `transport.py`, `CommandCenter.tsx` |
+| **Sustainability** | Energy/water/waste/carbon tracking with AI recommendations | `sustainability.py`, `SustainabilityLog` model |
+| **Multilingual Assistance** | Gemini translation with Google Translate + offline fallback | `translate.py`, `VoiceTranslator.tsx` |
+| **Operational Intelligence** | AI Match Commander briefings, post-match reports | `gemini.py`, `copilot.py` |
+| **Real-Time Decision Support** | Incident triage, confidence scoring, WebSocket live events | `incidents.py`, `event_engine.py`, `EmergencyTriagePanel.tsx` |
+
+---
+
+## 12. Platform Interface Screenshots
 
 ### Landing Page
 ![Landing Page View](docs/screenshots/landing.png)

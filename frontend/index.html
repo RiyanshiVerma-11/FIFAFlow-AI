@@ -4,6 +4,12 @@
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>⚽</text></svg>" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content="FIFAFlow AI — GenAI-enabled stadium operations and digital twin platform for FIFA World Cup 2026. Real-time crowd management, accessible navigation, multilingual translation, and AI-powered operational intelligence." />
+    <meta name="theme-color" content="#2563eb" />
+    <meta name="robots" content="index, follow" />
+    <meta property="og:title" content="FIFAFlow AI — FIFA 2026 Operations Platform" />
+    <meta property="og:description" content="AI-powered stadium digital twin for crowd management, navigation, accessibility, and real-time decision support at FIFA World Cup 2026." />
+    <meta property="og:type" content="website" />
     <title>FIFAFlow AI - 2026 Tournament Operations</title>
     <!-- Google Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -11,9 +17,37 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <!-- Leaflet Map CSS -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
+    <style>
+      /* Skip navigation link — visible only on keyboard focus */
+      .skip-nav {
+        position: absolute;
+        top: -100%;
+        left: 0;
+        background: #2563eb;
+        color: #fff;
+        padding: 0.75rem 1.5rem;
+        z-index: 9999;
+        font-size: 0.875rem;
+        font-weight: 600;
+        border-radius: 0 0 0.5rem 0;
+        text-decoration: none;
+        transition: top 0.2s;
+      }
+      .skip-nav:focus {
+        top: 0;
+      }
+    </style>
   </head>
   <body class="antialiased overflow-x-hidden">
-    <div id="root"></div>
+    <!-- Skip Navigation Link for Keyboard Accessibility -->
+    <a href="#main-content" class="skip-nav" tabindex="0">Skip to main content</a>
+    <noscript>
+      <div style="padding:2rem;text-align:center;font-family:sans-serif;background:#fef3c7;color:#92400e;">
+        <h1>JavaScript Required</h1>
+        <p>FIFAFlow AI requires JavaScript to operate. Please enable JavaScript in your browser settings to access the stadium operations platform.</p>
+      </div>
+    </noscript>
+    <div id="root" role="application"></div>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

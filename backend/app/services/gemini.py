@@ -1,3 +1,11 @@
+"""Google Gemini GenAI service with rule-based fallback logic.
+
+Provides methods for operational briefings, incident analysis, What-If
+simulation, translation, copilot chat, and post-match reporting. Each
+method falls back to deterministic rule-based responses when the Gemini
+API is unavailable, ensuring uninterrupted platform operation.
+"""
+
 import json
 import logging
 import httpx

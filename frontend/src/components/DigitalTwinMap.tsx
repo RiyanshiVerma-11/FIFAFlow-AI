@@ -3,7 +3,7 @@ import L from 'leaflet';
 import { useTheme } from '../contexts/ThemeContext';
 
 interface MapNode {
-  id: number;
+  id: string | number;
   name: string;
   type: string;
   status: string;

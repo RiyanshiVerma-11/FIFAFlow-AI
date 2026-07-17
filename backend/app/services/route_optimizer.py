@@ -1,3 +1,11 @@
+"""Dijkstra-based stadium route optimiser with congestion awareness.
+
+Models the stadium as a weighted undirected graph and computes shortest
+paths using Dijkstra's algorithm. Supports wheelchair-accessible routing
+by filtering stair-only edges, and applies dynamic weight penalties based
+on live digital-twin occupancy data to route fans away from bottlenecks.
+"""
+
 import math
 import heapq
 from typing import Dict, Any, List, Tuple

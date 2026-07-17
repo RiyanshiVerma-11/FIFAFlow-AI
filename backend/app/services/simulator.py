@@ -1,7 +1,15 @@
+"""Live telemetry simulation engine for the stadium digital twin.
+
+Runs a background asyncio loop that periodically mutates digital-twin
+node occupancy, match attendance/scores, and sustainability metrics,
+broadcasting state updates through the Redis event broker for real-time
+dashboard visualisation.
+"""
+
 import asyncio
 import random
 import logging
-from datetime import datetime
+from datetime import datetime, timezone
 from sqlalchemy.orm import Session
 from app.core.database import SessionLocal
 from app.models.models import DigitalTwinNode, SustainabilityLog, AlertAndBriefing, Match
@@ -57,7 +65,7 @@ class Simulator:
                                 "node_name": node.name,
                                 "occupancy": node.occupancy,
                                 "queue_length_minutes": node.queue_length_minutes,
-                                "timestamp": datetime.utcnow().isoformat()
+                                "timestamp": datetime.now(timezone.utc).isoformat()
                             }
                             await event_broker.publish("stadium:events", event_msg)
                     elif node.occupancy >= 60:

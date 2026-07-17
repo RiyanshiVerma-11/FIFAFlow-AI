@@ -126,32 +126,36 @@ const MainApp: React.FC = () => {
 
   if (view === 'app' && token) {
     return (
-      <CommandCenter 
-        token={token} 
-        role={role} 
-        username={username} 
-        onLogout={handleLogout} 
-      />
+      <main id="main-content">
+        <CommandCenter 
+          token={token} 
+          role={role} 
+          username={username} 
+          onLogout={handleLogout} 
+        />
+      </main>
     );
   }
 
   if (view === 'landing') {
     return (
-      <LandingPage 
-        onEnterTerminal={() => setView(token ? 'app' : 'auth')}
-        tokenExists={!!token}
-      />
+      <main id="main-content">
+        <LandingPage 
+          onEnterTerminal={() => setView(token ? 'app' : 'auth')}
+          tokenExists={!!token}
+        />
+      </main>
     );
   }
 
   return (
-    <div className="min-h-screen bg-[#f8f9fa] dark:bg-[#0f0f0f] flex flex-col justify-between p-6 relative overflow-hidden transition-colors duration-300">
+    <main id="main-content" className="min-h-screen bg-transparent flex flex-col justify-between p-6 relative overflow-hidden transition-colors duration-300">
       
       {/* Top Navigation Bar inside Auth */}
       <div className="w-full flex justify-between items-center max-w-5xl mx-auto z-10">
         <button
           onClick={() => setView('landing')}
-          className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm text-neutral-600 dark:text-neutral-450 hover:bg-neutral-200/50 dark:hover:bg-neutral-800 border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-[#1e1e1e] transition-colors"
+          className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm text-neutral-800 dark:text-neutral-200 hover:bg-white/30 dark:hover:bg-black/30 border border-white/20 dark:border-white/10 glass-panel transition-colors shadow-glow-emerald"
           aria-label="Back to landing page"
         >
           <ArrowLeft className="h-4 w-4" />
@@ -161,7 +165,7 @@ const MainApp: React.FC = () => {
         <button
           onClick={toggleTheme}
           aria-label="Toggle theme"
-          className="p-2.5 rounded-full hover:bg-neutral-200/50 dark:hover:bg-neutral-800 transition-colors text-neutral-600 dark:text-neutral-300 border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-[#1e1e1e] shadow-sm"
+          className="p-2.5 rounded-full hover:bg-white/30 dark:hover:bg-black/30 transition-colors text-neutral-800 dark:text-neutral-200 border border-white/20 dark:border-white/10 glass-panel shadow-glow-gold"
         >
           {theme === 'dark' ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
         </button>
@@ -169,7 +173,7 @@ const MainApp: React.FC = () => {
 
       {/* Main card */}
       <div className="w-full max-w-[460px] mx-auto my-auto space-y-6 z-10">
-        <div className="bg-white dark:bg-[#1e1e1e] border border-neutral-200 dark:border-neutral-800/80 rounded-2xl p-8 shadow-sm space-y-6">
+        <div className="glass-panel border-white/20 dark:border-white/10 rounded-3xl p-8 shadow-glow-gold space-y-6 animate-fade-in-up">
           {/* Header branding logo */}
           <div className="text-center space-y-2">
             <div className="mx-auto h-11 w-11 bg-blue-600 rounded-xl flex items-center justify-center font-bold text-white text-lg shadow-sm">
@@ -223,7 +227,7 @@ const MainApp: React.FC = () => {
 
           {/* Success Banner */}
           {regSuccess && (
-            <div className="p-3 bg-emerald-50 dark:bg-emerald-950/20 border border-emerald-200 dark:border-emerald-900/50 rounded-lg flex items-center gap-2.5 text-xs text-[#2A9D8F] font-semibold">
+            <div role="status" aria-live="polite" className="p-3 bg-emerald-50 dark:bg-emerald-950/20 border border-emerald-200 dark:border-emerald-900/50 rounded-lg flex items-center gap-2.5 text-xs text-[#2A9D8F] font-semibold">
               <CheckCircle className="h-4.5 w-4.5 flex-shrink-0" />
               <span>{regSuccess}</span>
             </div>
@@ -231,7 +235,7 @@ const MainApp: React.FC = () => {
 
           {/* Error Banner */}
           {error && (
-            <div className="p-3 bg-red-50 dark:bg-red-950/20 border border-red-200 dark:border-red-900/50 rounded-lg flex items-center gap-2.5 text-xs text-red-650 dark:text-red-400">
+            <div role="alert" aria-live="assertive" className="p-3 bg-red-50 dark:bg-red-950/20 border border-red-200 dark:border-red-900/50 rounded-lg flex items-center gap-2.5 text-xs text-red-650 dark:text-red-400">
               <AlertCircle className="h-4.5 w-4.5 flex-shrink-0" />
               <span>{error}</span>
             </div>
@@ -437,7 +441,7 @@ const MainApp: React.FC = () => {
         <Shield className="h-3.5 w-3.5" />
         <span>Secure operations terminal. Powered by FIFAFlow Enterprise AI.</span>
       </div>
-    </div>
+    </main>
   );
 };
 

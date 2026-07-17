@@ -1,11 +1,22 @@
+"""Application configuration via Pydantic Settings.
+
+Loads environment variables with sensible defaults for local development.
+Raises ``ValueError`` at import time if the default JWT secret is used
+outside of a development environment.
+"""
+
 import os
-from pydantic_settings import BaseSettings
 from typing import Optional
 
+from pydantic_settings import BaseSettings
+
+
 class Settings(BaseSettings):
+    """Centralised application settings sourced from environment variables."""
+
     PROJECT_NAME: str = "FIFAFlow AI"
     API_V1_STR: str = "/api"
-    
+
     # Security
     JWT_SECRET: str = os.getenv("JWT_SECRET", "fifaflow_ai_jwt_secret_key_2026_super_secure")
     ALGORITHM: str = "HS256"
@@ -24,6 +35,7 @@ class Settings(BaseSettings):
 
     class Config:
         case_sensitive = True
+
 
 settings = Settings()
 

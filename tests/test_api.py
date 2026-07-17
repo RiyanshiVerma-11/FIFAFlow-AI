@@ -4,9 +4,8 @@ from fastapi.testclient import TestClient
 from main import app
 from app.core.database import get_db
 
-client = TestClient(app)
 
-def test_api_auth_register():
+def test_api_auth_register(client):
     # Register a new volunteer account with isolated credentials
     unique_suffix = int(time.time())
     username = f"testapi_vol_{unique_suffix}"
@@ -26,7 +25,7 @@ def test_api_auth_register():
     assert data["email"] == email
     assert data["role"] == "volunteer"
 
-def test_api_auth_login():
+def test_api_auth_login(client):
     # Authenticate with credentials
     response = client.post(
         "/api/auth/login",
@@ -42,7 +41,7 @@ def test_api_auth_login():
     assert data["role"] == "organizer"
     assert data["token_type"] == "bearer"
 
-def test_api_get_twin_nodes():
+def test_api_get_twin_nodes(client):
     # Retrieve stadium nodes list
     response = client.get("/api/twin/nodes")
     assert response.status_code == 200
@@ -53,7 +52,7 @@ def test_api_get_twin_nodes():
     assert any("Gate 1" in name for name in node_names)
     assert any("Concessions" in name for name in node_names)
 
-def test_api_navigation_route_accessible():
+def test_api_navigation_route_accessible(client):
     # Optimize a path from Gate 1 to Restrooms North
     response = client.post(
         "/api/navigation/route",
@@ -72,7 +71,7 @@ def test_api_navigation_route_accessible():
     assert data["distance_meters"] > 0
     assert data["accessibility_flag"] is True
 
-def test_api_report_incident():
+def test_api_report_incident(client):
     # Simulate logging in to get token
     login_res = client.post(
         "/api/auth/login",

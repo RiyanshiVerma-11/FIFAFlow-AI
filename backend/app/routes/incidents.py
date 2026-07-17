@@ -1,6 +1,15 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+"""Emergency incident reporting and management endpoints.
+
+Supports incident creation with AI-powered analysis (via Gemini),
+responder assignment, and incident resolution. All state changes
+are broadcast through the Redis event broker for real-time dashboard
+updates.
+"""
+
+from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from typing import List
+
 from app.core.database import get_db
 from app.models.models import Incident, User
 from app.schemas.schemas import IncidentCreate, IncidentResponse
@@ -10,23 +19,27 @@ from app.core.event_engine import event_broker
 
 router = APIRouter(prefix="/incidents", tags=["Incidents & Emergencies"])
 
+
 @router.get("", response_model=List[IncidentResponse])
-def get_incidents(db: Session = Depends(get_db)):
+def get_incidents(db: Session = Depends(get_db)) -> list:
+    """Retrieve all incidents ordered by most recent first."""
     return db.query(Incident).order_by(Incident.created_at.desc()).all()
+
 
 @router.post("", response_model=IncidentResponse)
 async def report_incident(
     incident_in: IncidentCreate,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
-):
+    current_user: User = Depends(get_current_user),
+) -> Incident:
+    """Report a new incident and obtain AI-generated response recommendations."""
     # 1. Ask Gemini to classify severity, create recommendations, and provide confidence
     ai_analysis = await gemini_service.analyze_incident(
         type=incident_in.type,
         severity=incident_in.severity,
-        description=incident_in.description
+        description=incident_in.description,
     )
-    
+
     incident = Incident(
         type=incident_in.type,
         severity=incident_in.severity,
@@ -36,13 +49,13 @@ async def report_incident(
         reporter_id=current_user.id,
         ai_response_recommendation=ai_analysis.get("action_recommendation"),
         confidence_score=ai_analysis.get("confidence_score", 90),
-        reasoning=ai_analysis.get("reasoning")
+        reasoning=ai_analysis.get("reasoning"),
     )
-    
+
     db.add(incident)
     db.commit()
     db.refresh(incident)
-    
+
     # 2. Publish to Redis Broker
     await event_broker.publish("stadium:events", {
         "type": "incident_reported",
@@ -50,58 +63,62 @@ async def report_incident(
         "incident_type": incident.type,
         "severity": incident.severity,
         "description": incident.description,
-        "recommendation": incident.ai_response_recommendation
+        "recommendation": incident.ai_response_recommendation,
     })
-    
+
     return incident
+
 
 @router.post("/{incident_id}/assign", response_model=IncidentResponse)
 async def assign_incident(
     incident_id: int,
     responder_username: str,
     db: Session = Depends(get_db),
-    _ = Depends(require_role(["organizer", "staff"]))
-):
+    _ = Depends(require_role(["organizer", "staff"])),
+) -> Incident:
+    """Assign a responder to an active incident and update its status."""
     incident = db.query(Incident).filter(Incident.id == incident_id).first()
     if not incident:
         raise HTTPException(status_code=404, detail="Incident not found")
-        
+
     responder = db.query(User).filter(User.username == responder_username).first()
     if not responder:
         raise HTTPException(status_code=404, detail="Responder user not found")
-        
+
     incident.assigned_responder_id = responder.id
     incident.status = "active"
     db.commit()
     db.refresh(incident)
-    
+
     await event_broker.publish("stadium:events", {
         "type": "incident_assigned",
         "incident_id": incident.id,
         "responder": responder.username,
-        "status": incident.status
+        "status": incident.status,
     })
-    
+
     return incident
+
 
 @router.post("/{incident_id}/resolve", response_model=IncidentResponse)
 async def resolve_incident(
     incident_id: int,
     db: Session = Depends(get_db),
-    _ = Depends(require_role(["organizer", "staff"]))
-):
+    _ = Depends(require_role(["organizer", "staff"])),
+) -> Incident:
+    """Mark an incident as resolved and broadcast the resolution event."""
     incident = db.query(Incident).filter(Incident.id == incident_id).first()
     if not incident:
         raise HTTPException(status_code=404, detail="Incident not found")
-        
+
     incident.status = "resolved"
     db.commit()
     db.refresh(incident)
-    
+
     await event_broker.publish("stadium:events", {
         "type": "incident_resolved",
         "incident_id": incident.id,
-        "status": incident.status
+        "status": incident.status,
     })
-    
+
     return incident

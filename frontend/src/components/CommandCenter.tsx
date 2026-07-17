@@ -11,6 +11,8 @@ import { useTheme } from '../contexts/ThemeContext';
 import DigitalTwinMap from './DigitalTwinMap';
 import AccessAssistant from './AccessAssistant';
 import VoiceTranslator from './VoiceTranslator';
+import CopilotDrawer from './CopilotDrawer';
+import { EmergencyReportForm, EmergencyLogs } from './EmergencyTriagePanel';
 
 interface CommandCenterProps {
   token: string;
@@ -25,7 +27,12 @@ interface SustainabilityLog {
   value?: number;
   unit?: string;
   timestamp?: string;
-  [key: string]: unknown;
+  energy_kwh: number;
+  water_liters: number;
+  waste_kg: number;
+  carbon_kg: number;
+  ai_recommendation?: string;
+  [key: string]: any;
 }
 
 interface VolunteerShift {
@@ -36,17 +43,23 @@ interface VolunteerShift {
   user?: { username: string };
   start_time?: string;
   end_time?: string;
-  [key: string]: unknown;
+  shift_start?: string;
+  shift_end?: string;
+  assigned_zone?: string;
+  [key: string]: any;
 }
 
 interface NodeData {
-  id: string;
+  id: string | number;
   lat: number;
   lng: number;
-  type?: string;
-  status?: string;
+  type: string;
+  status: string;
   density?: number;
-  [key: string]: unknown;
+  name: string;
+  occupancy: number;
+  queue_length_minutes: number;
+  [key: string]: any;
 }
 
 interface MatchData {
@@ -55,14 +68,14 @@ interface MatchData {
   score: string;
   current_attendance: number;
   weather: string;
-  [key: string]: unknown;
+  [key: string]: any;
 }
 
 interface AlertData {
   id?: number;
   severity: string;
   message: string;
-  [key: string]: unknown;
+  [key: string]: any;
 }
 
 interface IncidentData {
@@ -73,7 +86,28 @@ interface IncidentData {
   location?: string;
   status?: string;
   timestamp?: string;
-  [key: string]: unknown;
+  created_at?: string;
+  ai_response_recommendation?: string;
+  [key: string]: any;
+}
+
+interface SimulationResult {
+  impact_description: string;
+  risk_level: string;
+  estimated_wait_time_impact_min: number;
+  volunteer_redistribution_recommendation: string;
+  suggested_reroute_nodes: string[];
+  confidence_score: number;
+  [key: string]: any;
+}
+
+interface ComputedRoute {
+  path: { lat: number; lng: number; name?: string }[];
+  distance_meters: number;
+  estimated_minutes: number;
+  accessibility_flag: boolean;
+  safety_advisory?: string;
+  [key: string]: any;
 }
 
 interface ChatMessage {
@@ -111,13 +145,13 @@ const CommandCenter = ({ token, role, username, onLogout }: CommandCenterProps) 
   
   // Realtime alerts stream
   const [alerts, setAlerts] = useState<AlertData[]>([
-    { id: 1, type: "warning", message: "Gate 3 Congestion expected to reach 95% capacity in 15 minutes." },
-    { id: 2, type: "info", message: "Parking Zone B is nearing capacity. Traffic units guided." }
+    { id: 1, severity: "warning", message: "Gate 3 Congestion expected to reach 95% capacity in 15 minutes." },
+    { id: 2, severity: "info", message: "Parking Zone B is nearing capacity. Traffic units guided." }
   ]);
 
   // What-if simulator state
   const [selectedScenario, setSelectedScenario] = useState('gate_3_close');
-  const [simulationResult, setSimulationResult] = useState<Record<string, unknown> | null>(null);
+  const [simulationResult, setSimulationResult] = useState<SimulationResult | null>(null);
   const [simulating, setSimulating] = useState(false);
 
   // Incidents states
@@ -137,7 +171,7 @@ const CommandCenter = ({ token, role, username, onLogout }: CommandCenterProps) 
     endNode: "Restrooms North",
     accessible: false
   });
-  const [computedRoute, setComputedRoute] = useState<Record<string, unknown> | null>(null);
+  const [computedRoute, setComputedRoute] = useState<ComputedRoute | null>(null);
 
   // Copilot Interactive Chat state
   const [chatMessage, setChatMessage] = useState("");
@@ -175,15 +209,15 @@ const CommandCenter = ({ token, role, username, onLogout }: CommandCenterProps) 
     } catch (e) {
       // Offline mock fallback
       setNodes([
-        { id: 1, name: "Gate 1", type: "gate", status: "active", occupancy: 45, queue_length_minutes: 3 },
-        { id: 2, name: "Gate 2", type: "gate", status: "active", occupancy: 52, queue_length_minutes: 4 },
-        { id: 3, name: "Gate 3 (Congested)", type: "gate", status: "congested", occupancy: 92, queue_length_minutes: 18 },
-        { id: 4, name: "Gate 4", type: "gate", status: "active", occupancy: 61, queue_length_minutes: 5 },
-        { id: 5, name: "Gate 5", type: "gate", status: "active", occupancy: 35, queue_length_minutes: 2 },
-        { id: 6, name: "Concessions Plaza", type: "concession", status: "active", occupancy: 75, queue_length_minutes: 8 },
-        { id: 7, name: "Restrooms North", type: "restroom", status: "active", occupancy: 80, queue_length_minutes: 6 },
-        { id: 8, name: "Medical Station 1", type: "medical_point", status: "active", occupancy: 10, queue_length_minutes: 0 },
-        { id: 9, name: "Transport Terminal", type: "transit_hub", status: "active", occupancy: 58, queue_length_minutes: 5 }
+        { id: "1", name: "Gate 1", type: "gate", status: "active", occupancy: 45, queue_length_minutes: 3, lat: 34.0522, lng: -118.2437 },
+        { id: "2", name: "Gate 2", type: "gate", status: "active", occupancy: 52, queue_length_minutes: 4, lat: 34.0532, lng: -118.2447 },
+        { id: "3", name: "Gate 3 (Congested)", type: "gate", status: "congested", occupancy: 92, queue_length_minutes: 18, lat: 34.0542, lng: -118.2457 },
+        { id: "4", name: "Gate 4", type: "gate", status: "active", occupancy: 61, queue_length_minutes: 5, lat: 34.0552, lng: -118.2467 },
+        { id: "5", name: "Gate 5", type: "gate", status: "active", occupancy: 35, queue_length_minutes: 2, lat: 34.0562, lng: -118.2477 },
+        { id: "6", name: "Concessions Plaza", type: "concession", status: "active", occupancy: 75, queue_length_minutes: 8, lat: 34.0548, lng: -118.2452 },
+        { id: "7", name: "Restrooms North", type: "restroom", status: "active", occupancy: 80, queue_length_minutes: 6, lat: 34.0558, lng: -118.2462 },
+        { id: "8", name: "Medical Station 1", type: "medical_point", status: "active", occupancy: 10, queue_length_minutes: 0, lat: 34.0538, lng: -118.2442 },
+        { id: "9", name: "Transport Terminal", type: "transit_hub", status: "active", occupancy: 58, queue_length_minutes: 5, lat: 34.0512, lng: -118.2427 }
       ]);
     }
   };
@@ -456,7 +490,7 @@ const CommandCenter = ({ token, role, username, onLogout }: CommandCenterProps) 
           // Push event details into dashboard alerts array
           const alertEvent = msg.data;
           setAlerts(prev => [
-            { id: Date.now(), type: alertEvent.severity === "Critical" ? "error" : "warning", message: `${alertEvent.node_name || alertEvent.incident_type || 'Alert'}: ${alertEvent.recommendation || alertEvent.description || 'Status update trigger.'}` },
+            { id: Date.now(), severity: alertEvent.severity === "Critical" ? "error" : "warning", message: `${alertEvent.node_name || alertEvent.incident_type || 'Alert'}: ${alertEvent.recommendation || alertEvent.description || 'Status update trigger.'}` },
             ...prev.slice(0, 4)
           ]);
         }
@@ -725,7 +759,7 @@ const CommandCenter = ({ token, role, username, onLogout }: CommandCenterProps) 
                 ) : (
                   sustainabilityLogs.slice(0, 10).map((log, idx) => (
                     <tr key={idx} className="hover:bg-neutral-50 dark:hover:bg-neutral-900/50">
-                      <td className="px-4 py-3 font-mono">{new Date(log.timestamp).toLocaleTimeString()}</td>
+                      <td className="px-4 py-3 font-mono">{new Date(log.timestamp || '').toLocaleTimeString()}</td>
                       <td className="px-4 py-3">{log.energy_kwh.toFixed(1)}</td>
                       <td className="px-4 py-3">{log.water_liters.toFixed(1)}</td>
                       <td className="px-4 py-3">{log.waste_kg.toFixed(1)}</td>
@@ -775,10 +809,10 @@ const CommandCenter = ({ token, role, username, onLogout }: CommandCenterProps) 
             <div>
               <div className="text-[10px] uppercase font-bold text-neutral-500">Shift Schedule</div>
               <div className="text-sm font-bold text-neutral-850 dark:text-neutral-100 mt-2">
-                Start: {new Date(shift.shift_start).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                Start: {new Date(shift.shift_start || '').toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
               </div>
               <div className="text-sm font-bold text-neutral-850 dark:text-neutral-100">
-                End: {new Date(shift.shift_end).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                End: {new Date(shift.shift_end || '').toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
               </div>
             </div>
             <div className="text-[10px] text-neutral-455 mt-4">6 Hour Block duration</div>
@@ -930,9 +964,9 @@ const CommandCenter = ({ token, role, username, onLogout }: CommandCenterProps) 
   };
 
   return (
-    <div className="min-h-screen bg-[#f8f9fa] dark:bg-[#0f0f0f] text-neutral-800 dark:text-neutral-200 flex flex-col transition-colors duration-300">
+    <div className="min-h-screen bg-transparent flex flex-col transition-colors duration-300">
       {/* Navbar header */}
-      <header className="border-b border-neutral-200 dark:border-[#3c4043] bg-white/80 dark:bg-[#1e1e1e]/85 backdrop-blur-md sticky top-0 z-[1000] px-6 py-3 flex items-center justify-between shadow-sm">
+      <header className="glass-panel border-b border-white/10 px-6 py-4 flex justify-between items-center z-10 animate-fade-in-down shadow-glow-navy">
         <div className="flex items-center gap-3">
           <button 
             onClick={() => setSidebarVisible(!sidebarVisible)}
@@ -1103,241 +1137,139 @@ const CommandCenter = ({ token, role, username, onLogout }: CommandCenterProps) 
               </div>
 
 
-              {/* MAP & SIDEBAR ALERTS */}
-              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                <div className="lg:col-span-2 h-[450px]">
-                  <DigitalTwinMap nodes={nodes} />
-                </div>
+              {/* MAIN DASHBOARD GRID */}
+              <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 mt-6">
                 
-                {/* Alerts stream */}
-                <div className="glass-panel p-5 rounded-2xl flex flex-col justify-between h-[450px] bg-white dark:bg-[#1e1e1e]">
-                  <div>
-                    <h3 className="text-xs font-bold uppercase tracking-wider text-neutral-500 dark:text-neutral-400 mb-4 flex items-center gap-2">
-                      <ShieldAlert className="text-[#d93025] h-4 w-4" />
-                      Live Copilot Alerts Stream
-                    </h3>
-                    
-                    <div className="space-y-3 overflow-y-auto max-h-[300px]">
-                      {alerts.map(alert => (
-                        <div key={alert.id} className="p-3 bg-neutral-50 dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-xl text-xs flex gap-2.5">
-                          <span className={`h-2 w-2 rounded-full mt-1.5 flex-shrink-0 ${alert.type === 'error' ? 'bg-[#d93025]' : 'bg-[#f9ab00]'}`} />
-                          <span className="text-neutral-700 dark:text-neutral-300">{alert.message}</span>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
+                {/* Column 1: Simulator & Report Incident */}
+                <div className="flex flex-col gap-6 lg:col-span-1 h-[724px]">
+                  {/* What-if Simulator panel */}
+                  <div className="glass-panel p-5 rounded-2xl flex flex-col justify-between bg-white/5 dark:bg-[#1e1e1e]/60 shadow-glow-navy h-[350px]">
+                    <div>
+                      <h3 className="text-xs font-bold uppercase tracking-wider text-neutral-500 dark:text-neutral-400 mb-4 flex items-center gap-2">
+                        <HelpIcon className="text-blue-600 dark:text-blue-400 h-4 w-4" />
+                        AI What-If Simulator
+                      </h3>
 
-                  <div className="border-t border-neutral-200 dark:border-neutral-800 pt-3">
-                    <button 
-                      onClick={fetchBriefing}
-                      className="w-full py-2 bg-neutral-50 dark:bg-neutral-900 hover:bg-neutral-100 dark:hover:bg-neutral-800 border border-neutral-200 dark:border-neutral-800 rounded-xl text-xs font-semibold text-blue-600 dark:text-blue-400 flex items-center justify-center gap-1.5 transition-colors"
-                    >
-                      <RefreshCw className="h-3 w-3" />
-                      Refresh Arena Stats
-                    </button>
-                  </div>
-                </div>
-              </div>
-
-              {/* WHAT-IF SIMULATOR & CHARTS */}
-              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                {/* What-if Simulator panel */}
-                <div className="glass-panel p-5 rounded-2xl flex flex-col justify-between bg-white dark:bg-[#1e1e1e]">
-                  <div>
-                    <h3 className="text-xs font-bold uppercase tracking-wider text-neutral-500 dark:text-neutral-400 mb-4 flex items-center gap-2">
-                      <HelpIcon className="text-blue-600 dark:text-blue-400 h-4 w-4" />
-                      AI What-If Simulator
-                    </h3>
-
-                    <label htmlFor="whatif-scenario-select" className="text-[10px] text-neutral-400 dark:text-neutral-500 uppercase font-bold">Select Scenario</label>
-                    <select
-                      id="whatif-scenario-select"
-                      value={selectedScenario}
-                      onChange={(e) => setSelectedScenario(e.target.value)}
-                      className="w-full mt-1.5 mb-4 bg-white dark:bg-neutral-900 border border-neutral-300 dark:border-neutral-700 px-3 py-2.5 rounded-lg text-xs text-neutral-800 dark:text-neutral-200 outline-none focus:ring-2 focus:ring-blue-500/25 focus:border-blue-500 dark:focus:border-blue-400 transition-all"
-                    >
-                      <option value="gate_3_close">What if Gate 3 Closes?</option>
-                      <option value="metro_delay">What if Metro is delayed by 15m?</option>
-                      <option value="rain">What if heavy rain starts?</option>
-                      <option value="spectator_surge">What if 20,000 extra spectators arrive early?</option>
-                    </select>
-
-                    <button
-                      onClick={runSimulation}
-                      disabled={simulating}
-                      className="w-full py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg text-xs transition-colors shadow-sm"
-                    >
-                      {simulating ? 'Analyzing...' : 'Run Simulation'}
-                    </button>
-
-                    {simulationResult && (
-                      <div className="mt-4 p-4 bg-blue-50/50 dark:bg-blue-950/20 rounded-xl border border-blue-200 dark:border-blue-900/50 text-xs space-y-2.5 text-neutral-800 dark:text-neutral-200">
-                        <div className="flex justify-between items-center pb-2 border-b border-blue-150 dark:border-blue-900/40">
-                          <span className="font-bold text-neutral-700 dark:text-neutral-300">Risk Level:</span>
-                          <span className={`px-2 py-0.5 rounded text-[9px] font-bold text-white uppercase ${simulationResult.risk_level === 'High' ? 'bg-[#f9ab00]' : 'bg-[#d93025]'}`}>
-                            {simulationResult.risk_level}
-                          </span>
-                        </div>
-                        <p className="text-neutral-600 dark:text-neutral-400 italic">"{simulationResult.impact_description}"</p>
-                        <div>
-                          <span className="font-bold text-neutral-700 dark:text-neutral-300">AI Mitigation Recommendation:</span>
-                          <p className="text-neutral-600 dark:text-neutral-400 mt-1">{simulationResult.volunteer_redistribution_recommendation}</p>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                </div>
-
-                {/* Charts predictive */}
-                <div className="glass-panel p-5 rounded-2xl lg:col-span-2 bg-white dark:bg-[#1e1e1e]">
-                  <h3 className="text-xs font-bold uppercase tracking-wider text-neutral-500 dark:text-neutral-400 mb-4">
-                    Predictive Crowds & Transit Analytics
-                  </h3>
-                  <div className="h-56">
-                    <ResponsiveContainer width="100%" height="100%">
-                      <AreaChart data={chartData}>
-                        <defs>
-                          <linearGradient id="colorWait" x1="0" y1="0" x2="0" y2="1">
-                            <stop offset="5%" stopColor="#1a73e8" stopOpacity={0.4}/>
-                            <stop offset="95%" stopColor="#1a73e8" stopOpacity={0}/>
-                          </linearGradient>
-                        </defs>
-                        <CartesianGrid strokeDasharray="3 3" stroke={theme === 'dark' ? '#3c4043' : '#e0e0e0'} />
-                        <XAxis dataKey="time" stroke={theme === 'dark' ? '#9e9e9e' : '#5f6368'} />
-                        <YAxis stroke={theme === 'dark' ? '#9e9e9e' : '#5f6368'} />
-                        <Tooltip contentStyle={{ backgroundColor: theme === 'dark' ? '#1e1e1e' : '#ffffff', borderColor: theme === 'dark' ? '#3c4043' : '#dadce0', color: theme === 'dark' ? '#ffffff' : '#202124', borderRadius: '8px' }} />
-                        <Area type="monotone" dataKey="waitGate3" stroke="#1a73e8" fillOpacity={1} fill="url(#colorWait)" name="Gate 3 Wait Time (Min)" />
-                      </AreaChart>
-                    </ResponsiveContainer>
-                  </div>
-                </div>
-              </div>
-
-              {/* EMERGENCIES REPORTING SECTION */}
-              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                {/* Submit emergency tickets */}
-                <div className="glass-panel p-5 rounded-2xl bg-white dark:bg-[#1e1e1e]">
-                  <h3 className="text-xs font-bold uppercase tracking-wider text-neutral-500 dark:text-neutral-400 mb-4 flex items-center gap-2">
-                    <Flame className="text-[#d93025] h-4 w-4" />
-                    Report Emergency Incident
-                  </h3>
-                                    <form onSubmit={handleReportIncident} className="space-y-4 text-xs">
-                    <div className="text-left">
-                      <label htmlFor="incident-type-select" className="text-[10px] text-neutral-400 dark:text-neutral-500 uppercase font-bold">Incident Type</label>
-                      <select 
-                        id="incident-type-select"
-                        value={newIncident.type}
-                        onChange={(e) => setNewIncident(prev => ({ ...prev, type: e.target.value }))}
-                        className="w-full mt-1.5 bg-white dark:bg-neutral-900 border border-neutral-300 dark:border-neutral-700 px-3 py-2.5 rounded-lg text-neutral-855 dark:text-neutral-200 outline-none focus:ring-2 focus:ring-blue-500/25 focus:border-blue-500 dark:focus:border-blue-400 transition-all"
+                      <label htmlFor="whatif-scenario-select" className="text-[10px] text-neutral-400 dark:text-neutral-500 uppercase font-bold">Select Scenario</label>
+                      <select
+                        id="whatif-scenario-select"
+                        value={selectedScenario}
+                        onChange={(e) => setSelectedScenario(e.target.value)}
+                        className="w-full mt-1.5 mb-4 bg-white/50 dark:bg-neutral-900/50 border border-neutral-300 dark:border-white/10 px-3 py-2.5 rounded-lg text-xs text-neutral-800 dark:text-neutral-200 outline-none focus:ring-2 focus:ring-blue-500/25 focus:border-blue-500 dark:focus:border-blue-400 transition-all backdrop-blur-md"
                       >
-                        <option value="medical">Medical Emergency</option>
-                        <option value="fire">Fire / Smoke hazard</option>
-                        <option value="violence">Violence / Brawl</option>
-                        <option value="suspicious_object">Suspicious Object</option>
-                        <option value="lost_child">Lost Child</option>
+                        <option value="gate_3_close">What if Gate 3 Closes?</option>
+                        <option value="metro_delay">What if Metro is delayed by 15m?</option>
+                        <option value="rain">What if heavy rain starts?</option>
+                        <option value="spectator_surge">What if 20,000 extra spectators arrive early?</option>
                       </select>
-                    </div>
 
-                    <div className="text-left">
-                      <label htmlFor="incident-severity-select" className="text-[10px] text-neutral-400 dark:text-neutral-500 uppercase font-bold">Severity Level</label>
-                      <select 
-                        id="incident-severity-select"
-                        value={newIncident.severity}
-                        onChange={(e) => setNewIncident(prev => ({ ...prev, severity: e.target.value }))}
-                        className="w-full mt-1.5 bg-white dark:bg-neutral-900 border border-neutral-300 dark:border-neutral-700 px-3 py-2.5 rounded-lg text-neutral-855 dark:text-neutral-200 outline-none focus:ring-2 focus:ring-blue-500/25 focus:border-blue-500 dark:focus:border-blue-400 transition-all"
+                      <button
+                        onClick={runSimulation}
+                        disabled={simulating}
+                        className="w-full py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg text-xs transition-colors shadow-sm"
                       >
-                        <option value="Low">Low (Informational)</option>
-                        <option value="Medium">Medium (Local Staff)</option>
-                        <option value="High">High (Urgent Response)</option>
-                        <option value="Critical">Critical (First Responders)</option>
-                      </select>
-                    </div>
+                        {simulating ? 'Analyzing...' : 'Run Simulation'}
+                      </button>
 
-                    <div className="text-left">
-                      <label htmlFor="incident-description-textarea" className="text-[10px] text-neutral-400 dark:text-neutral-500 uppercase font-bold">Description Details</label>
-                      <textarea
-                        id="incident-description-textarea"
-                        rows={2}
-                        value={newIncident.description}
-                        onChange={(e) => setNewIncident(prev => ({ ...prev, description: e.target.value }))}
-                        placeholder="State seating rows, details..."
-                        className="w-full mt-1.5 p-3 bg-white dark:bg-neutral-900 border border-neutral-300 dark:border-neutral-700 rounded-lg text-neutral-800 dark:text-neutral-200 placeholder-neutral-400 dark:placeholder-neutral-500 outline-none focus:ring-2 focus:ring-blue-500/25 focus:border-blue-500 dark:focus:border-blue-400 transition-all"
-                        required
-                      />
-                    </div>
-
-                    <button
-                      type="submit"
-                      disabled={reportingIncident}
-                      className="w-full py-2.5 bg-[#d93025] hover:bg-[#c5221f] text-white font-semibold rounded-lg transition-colors shadow-sm"
-                    >
-                      {reportingIncident ? 'Generating AI Triage...' : 'Report Incident to Copilot'}
-                    </button>
-                  </form>
-                </div>
-
-                {/* Emergency Incident Log with AI advice */}
-                <div className="glass-panel p-5 rounded-2xl lg:col-span-2 flex flex-col justify-between bg-white dark:bg-[#1e1e1e]">
-                  <div>
-                    <h3 className="text-xs font-bold uppercase tracking-wider text-neutral-500 dark:text-neutral-400 mb-4">
-                      Active Emergency Logs & AI Advisories
-                    </h3>
-                    
-                    <div className="space-y-4 max-h-[300px] overflow-y-auto pr-2">
-                      {incidents.length === 0 ? (
-                        <div className="text-xs text-neutral-500 text-center py-8">No active incidents reported.</div>
-                      ) : (
-                        incidents.map(inc => (
-                          <div key={inc.id} className="p-4 bg-neutral-50 dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-xl text-xs space-y-2.5">
-                            <div className="flex justify-between items-start">
-                              <div>
-                                <span className={`px-2 py-0.5 rounded text-[8px] font-bold text-white uppercase ${inc.severity === 'Critical' ? 'bg-[#d93025] animate-pulse' : inc.severity === 'High' ? 'bg-orange-500' : 'bg-neutral-600'}`}>
-                                  {inc.severity}
-                                </span>
-                                <span className="font-bold text-neutral-800 dark:text-neutral-200 ml-2 capitalize">{inc.type} Case</span>
-                              </div>
-                              <span className="text-[10px] text-neutral-400 dark:text-neutral-500">{new Date(inc.created_at).toLocaleTimeString()}</span>
-                            </div>
-                            <p className="text-neutral-600 dark:text-neutral-400 italic">"{inc.description}"</p>
-                            {inc.ai_response_recommendation && (
-                              <div className="mt-2 p-2.5 bg-blue-50/50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-900/50 rounded-lg">
-                                <span className="font-bold text-blue-700 dark:text-blue-300 text-[10px] uppercase">AI Copilot Recommendation:</span>
-                                <p className="text-neutral-700 dark:text-neutral-300 mt-0.5 font-medium">{inc.ai_response_recommendation}</p>
-                              </div>
-                            )}
+                      {simulationResult && (
+                        <div className="mt-4 p-3 bg-blue-50/50 dark:bg-blue-950/20 rounded-xl border border-blue-200 dark:border-blue-900/50 text-[10px] space-y-2.5 text-neutral-800 dark:text-neutral-200 overflow-y-auto max-h-[100px]">
+                          <div className="flex justify-between items-center pb-2 border-b border-blue-150 dark:border-blue-900/40">
+                            <span className="font-bold">Risk Level:</span>
+                            <span className={`px-2 py-0.5 rounded text-[8px] font-bold text-white uppercase ${simulationResult.risk_level === 'High' ? 'bg-[#f9ab00]' : 'bg-[#d93025]'}`}>
+                              {simulationResult.risk_level}
+                            </span>
                           </div>
-                        ))
+                          <p className="italic">"{simulationResult.impact_description}"</p>
+                          <div>
+                            <span className="font-bold">AI Mitigation Recommendation:</span>
+                            <p className="mt-1">{simulationResult.volunteer_redistribution_recommendation}</p>
+                          </div>
+                        </div>
                       )}
                     </div>
                   </div>
 
-                  {/* Post-match summary report widget */}
-                  <div className="border-t border-neutral-200 dark:border-neutral-800 pt-4 mt-4 flex items-center justify-between">
-                    <div>
-                      <div className="text-[10px] font-bold text-neutral-500 dark:text-neutral-400 uppercase">Match Operations</div>
-                      <div className="text-xs text-neutral-500">Compile operational briefs post match.</div>
+                  <div className="h-[350px]">
+                    <EmergencyReportForm
+                      newIncident={newIncident}
+                      setNewIncident={setNewIncident}
+                      handleReportIncident={handleReportIncident}
+                      reportingIncident={reportingIncident}
+                    />
+                  </div>
+                </div>
+
+                {/* Column 2 & 3: Map & Charts */}
+                <div className="flex flex-col gap-6 lg:col-span-2 h-[724px]">
+                  <div className="h-[380px]">
+                    <DigitalTwinMap nodes={nodes} />
+                  </div>
+                  
+                  {/* Charts predictive */}
+                  <div className="glass-panel p-5 rounded-2xl bg-white/5 dark:bg-[#1e1e1e]/60 h-[320px] shadow-glow-navy flex flex-col">
+                    <h3 className="text-xs font-bold uppercase tracking-wider text-neutral-500 dark:text-neutral-400 mb-2">
+                      Predictive Crowds & Transit Analytics
+                    </h3>
+                    <div className="flex-1 min-h-0">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <AreaChart data={chartData}>
+                          <defs>
+                            <linearGradient id="colorWait" x1="0" y1="0" x2="0" y2="1">
+                              <stop offset="5%" stopColor="#1a73e8" stopOpacity={0.4}/>
+                              <stop offset="95%" stopColor="#1a73e8" stopOpacity={0}/>
+                            </linearGradient>
+                          </defs>
+                          <CartesianGrid strokeDasharray="3 3" stroke={theme === 'dark' ? '#3c4043' : '#e0e0e0'} />
+                          <XAxis dataKey="time" stroke={theme === 'dark' ? '#9e9e9e' : '#5f6368'} tick={{fontSize: 10}} />
+                          <YAxis stroke={theme === 'dark' ? '#9e9e9e' : '#5f6368'} tick={{fontSize: 10}} />
+                          <Tooltip contentStyle={{ backgroundColor: theme === 'dark' ? '#1e1e1e' : '#ffffff', borderColor: theme === 'dark' ? '#3c4043' : '#dadce0', color: theme === 'dark' ? '#ffffff' : '#202124', borderRadius: '8px', fontSize: '10px' }} />
+                          <Area type="monotone" dataKey="waitGate3" stroke="#1a73e8" fillOpacity={1} fill="url(#colorWait)" name="Gate 3 Wait Time (Min)" />
+                        </AreaChart>
+                      </ResponsiveContainer>
                     </div>
-                    <button
-                      onClick={generatePostReport}
-                      disabled={generatingReport}
-                      className="px-4 py-2 bg-white dark:bg-neutral-800 hover:bg-neutral-50 dark:hover:bg-neutral-700 border border-neutral-300 dark:border-neutral-750 text-blue-600 dark:text-blue-400 text-xs font-bold rounded-xl transition-colors shadow-sm"
-                    >
-                      {generatingReport ? 'Analyzing history...' : 'Generate Post-Match Report'}
-                    </button>
+                  </div>
+                </div>
+
+                {/* Column 4: Alerts & Emergency Triage Logs */}
+                <div className="flex flex-col gap-6 lg:col-span-1 h-[724px]">
+                  {/* Alerts stream */}
+                  <div className="glass-panel p-5 rounded-2xl flex flex-col justify-between bg-white/5 dark:bg-[#1e1e1e]/60 h-[350px] shadow-glow-emerald">
+                    <div className="flex-1 flex flex-col min-h-0">
+                      <h3 className="text-xs font-bold uppercase tracking-wider text-neutral-500 dark:text-neutral-400 mb-4 flex items-center gap-2 flex-shrink-0">
+                        <ShieldAlert className="text-[#d93025] h-4 w-4" />
+                        Live Copilot Alerts Stream
+                      </h3>
+                      
+                      <div className="space-y-3 overflow-y-auto pr-2 custom-scrollbar flex-1 mb-4">
+                        {alerts.map(alert => (
+                          <div key={alert.id} className="p-3 bg-neutral-50/50 dark:bg-neutral-900/50 border border-neutral-200/50 dark:border-neutral-800/50 rounded-xl text-[11px] flex gap-2.5 backdrop-blur-sm">
+                            <span className={`h-1.5 w-1.5 rounded-full mt-1.5 flex-shrink-0 ${alert.type === 'error' ? 'bg-[#d93025]' : 'bg-[#f9ab00]'}`} />
+                            <span className="text-neutral-700 dark:text-neutral-300">{alert.message}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+
+                    <div className="border-t border-neutral-200 dark:border-white/10 pt-3 flex-shrink-0">
+                      <button 
+                        onClick={fetchBriefing}
+                        className="w-full py-2 bg-white/50 dark:bg-neutral-900/50 hover:bg-white dark:hover:bg-neutral-800 border border-neutral-200 dark:border-white/10 rounded-xl text-xs font-semibold text-blue-600 dark:text-blue-400 flex items-center justify-center gap-1.5 transition-colors backdrop-blur-md"
+                      >
+                        <RefreshCw className="h-3 w-3" />
+                        Refresh Arena Stats
+                      </button>
+                    </div>
                   </div>
 
-                  {postMatchReport && (
-                    <div className="mt-4 p-4 bg-neutral-50 dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-xl max-h-[250px] overflow-y-auto text-xs prose prose-zinc dark:prose-invert font-sans">
-                      <div className="flex justify-between items-center border-b border-neutral-200 dark:border-neutral-800 pb-2 mb-2">
-                        <span className="font-bold text-[#1e8e3e] dark:text-[#6dd58c] flex items-center gap-1">
-                          <FileText className="h-3.5 w-3.5" />
-                          Generated Post-Match Report
-                        </span>
-                        <button onClick={() => setPostMatchReport(null)} className="text-neutral-400 hover:text-neutral-600 dark:hover:text-neutral-200 font-bold">Dismiss</button>
-                      </div>
-                      <pre className="text-neutral-800 dark:text-neutral-200 whitespace-pre-wrap font-sans">{postMatchReport}</pre>
-                    </div>
-                  )}
+                  <div className="h-[350px]">
+                    <EmergencyLogs
+                      incidents={incidents}
+                      generatePostReport={generatePostReport}
+                      generatingReport={generatingReport}
+                      postMatchReport={postMatchReport}
+                      setPostMatchReport={setPostMatchReport}
+                    />
+                  </div>
                 </div>
               </div>
             </>
@@ -1451,41 +1383,14 @@ const CommandCenter = ({ token, role, username, onLogout }: CommandCenterProps) 
         </main>
 
         {/* Floating Copilot conversational drawer (Gemini/Google Chat style) */}
-        <div className="w-full lg:w-80 border-t lg:border-t-0 lg:border-l border-neutral-200 dark:border-neutral-800 bg-[#f8f9fa] dark:bg-[#181818] p-4 flex flex-col justify-between flex-shrink-0 h-[400px] lg:h-full transition-colors duration-300">
-          <div className="flex flex-col min-h-0 flex-1">
-            <h3 className="flex-shrink-0 text-xs font-bold uppercase tracking-wider text-neutral-500 dark:text-neutral-400 mb-4 flex items-center gap-1.5 border-b border-neutral-200 dark:border-neutral-800 pb-2">
-              <MessageSquare className="text-blue-600 dark:text-blue-400 h-4 w-4" />
-              Interactive Operations Copilot
-            </h3>
-
-            <div className="space-y-3 overflow-y-auto flex-1 pr-1.5 scrollbar-thin text-xs">
-              {chatLog.map((chat, idx) => (
-                <div key={idx} className={`p-3 rounded-2xl max-w-[85%] ${chat.sender === 'copilot' ? 'bg-neutral-100 dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 text-neutral-800 dark:text-neutral-200 mr-auto rounded-tl-none' : 'bg-blue-600 dark:bg-[#a8c7fa] text-white dark:text-[#0b57d0] font-semibold ml-auto rounded-tr-none shadow-sm'}`}>
-                  {chat.text}
-                </div>
-              ))}
-            </div>
-          </div>
-          <form onSubmit={handleSendChatMessage} className="mt-4 flex gap-2 relative">
-            <input
-              id="copilot-chat-input"
-              aria-label="Interactive Operations Copilot message input"
-              type="text"
-              value={chatMessage}
-              onChange={(e) => setChatMessage(e.target.value)}
-              placeholder="Ask Copilot arena status..."
-              className="w-full pl-3.5 pr-10 py-2.5 bg-white dark:bg-neutral-900 border border-neutral-300 dark:border-neutral-755 rounded-full text-xs text-neutral-800 dark:text-neutral-200 outline-none focus:ring-2 focus:ring-blue-500/25 focus:border-blue-500 dark:focus:border-blue-400 transition-all"
-            />
-            <button
-              type="submit"
-              disabled={sendingChat}
-              aria-label="Send message to Copilot"
-              className="absolute right-2 top-2 h-7 w-7 bg-blue-600 dark:bg-[#a8c7fa] hover:bg-blue-700 dark:hover:bg-[#8bb2f9] text-white dark:text-[#0b57d0] rounded-full flex items-center justify-center transition-colors"
-            >
-              <Send className="h-3 w-3" />
-            </button>
-          </form>
-        </div>
+        <CopilotDrawer
+          chatLog={chatLog}
+          chatMessage={chatMessage}
+          setChatMessage={setChatMessage}
+          handleChat={handleSendChatMessage}
+          sendingChat={sendingChat}
+          activeTab={activeTab}
+        />
       </div>
     </div>
   );
