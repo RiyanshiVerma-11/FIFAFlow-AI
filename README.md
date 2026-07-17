@@ -1,5 +1,7 @@
 # FIFAFlow AI: AI Tournament Operations Platform & Digital Twin (FIFA 2026)
 
+🚀 **Live Demo:** [https://fifa-flow-ai.vercel.app/](https://fifa-flow-ai.vercel.app/)
+
 FIFAFlow AI is an enterprise-grade, event-driven, monolithic AI Operations Platform and Stadium Digital Twin built for the FIFA World Cup 2026. It integrates real-time telemetry, predictive analytics, and Google's Gemini GenAI to assist organizers, emergency responders, volunteers, and visitors in managing crowd flows, navigation routes, transit options, and stadium resources.
 
 ---
