@@ -1,0 +1,8 @@
+{
+  "rewrites": [
+    {
+      "source": "/api/(.*)",
+      "destination": "https://fifaflow-ai.onrender.com/api/$1"
+    }
+  ]
+}
