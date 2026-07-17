@@ -203,6 +203,9 @@ Matches check password hashers, route algorithms, and mock Gemini fallback struc
 
 ## 11. Platform Interface Screenshots
 
+### Landing Page
+![Landing Page View](docs/screenshots/landing.png)
+
 ### Login Gateway Interface
 ![Login View](docs/screenshots/login.png)
 
