@@ -19,6 +19,68 @@ interface CommandCenterProps {
   onLogout: () => void;
 }
 
+interface SustainabilityLog {
+  id?: number;
+  metric?: string;
+  value?: number;
+  unit?: string;
+  timestamp?: string;
+  [key: string]: unknown;
+}
+
+interface VolunteerShift {
+  id?: number;
+  sector?: string;
+  role_title?: string;
+  status: string;
+  user?: { username: string };
+  start_time?: string;
+  end_time?: string;
+  [key: string]: unknown;
+}
+
+interface NodeData {
+  id: string;
+  lat: number;
+  lng: number;
+  type?: string;
+  status?: string;
+  density?: number;
+  [key: string]: unknown;
+}
+
+interface MatchData {
+  team_a: string;
+  team_b: string;
+  score: string;
+  current_attendance: number;
+  weather: string;
+  [key: string]: unknown;
+}
+
+interface AlertData {
+  id?: number;
+  severity: string;
+  message: string;
+  [key: string]: unknown;
+}
+
+interface IncidentData {
+  id?: number;
+  type?: string;
+  severity?: string;
+  description?: string;
+  location?: string;
+  status?: string;
+  timestamp?: string;
+  [key: string]: unknown;
+}
+
+interface ChatMessage {
+  sender: 'user' | 'copilot';
+  text: string;
+}
+
 const CommandCenter = ({ token, role, username, onLogout }: CommandCenterProps) => {
   const { theme, toggleTheme } = useTheme();
   const [activeTab, setActiveTab] = useState<'command' | 'routing' | 'translator' | 'accessibility' | 'volunteer' | 'sustainability'>(
@@ -26,17 +88,17 @@ const CommandCenter = ({ token, role, username, onLogout }: CommandCenterProps) 
   );
 
   // Sustainability states
-  const [sustainabilityLogs, setSustainabilityLogs] = useState<any[]>([]);
+  const [sustainabilityLogs, setSustainabilityLogs] = useState<SustainabilityLog[]>([]);
   const [loadingSustainability, setLoadingSustainability] = useState(false);
 
   // Volunteer states
-  const [volunteerShift, setVolunteerShift] = useState<any | null>(null);
+  const [volunteerShift, setVolunteerShift] = useState<VolunteerShift | null>(null);
   const [loadingVolunteer, setLoadingVolunteer] = useState(false);
   const [updatingVolunteerStatus, setUpdatingVolunteerStatus] = useState(false);
   
   // Digital Twin state
-  const [nodes, setNodes] = useState<any[]>([]);
-  const [matchData, setMatchData] = useState<any>({
+  const [nodes, setNodes] = useState<NodeData[]>([]);
+  const [matchData, setMatchData] = useState<MatchData>({
     team_a: "USA",
     team_b: "Mexico",
     score: "1-0",
@@ -48,18 +110,18 @@ const CommandCenter = ({ token, role, username, onLogout }: CommandCenterProps) 
   const [briefing, setBriefing] = useState<string>("Loading AI Match Commander briefing...");
   
   // Realtime alerts stream
-  const [alerts, setAlerts] = useState<any[]>([
+  const [alerts, setAlerts] = useState<AlertData[]>([
     { id: 1, type: "warning", message: "Gate 3 Congestion expected to reach 95% capacity in 15 minutes." },
     { id: 2, type: "info", message: "Parking Zone B is nearing capacity. Traffic units guided." }
   ]);
 
   // What-if simulator state
   const [selectedScenario, setSelectedScenario] = useState('gate_3_close');
-  const [simulationResult, setSimulationResult] = useState<any | null>(null);
+  const [simulationResult, setSimulationResult] = useState<Record<string, unknown> | null>(null);
   const [simulating, setSimulating] = useState(false);
 
   // Incidents states
-  const [incidents, setIncidents] = useState<any[]>([]);
+  const [incidents, setIncidents] = useState<IncidentData[]>([]);
   const [newIncident, setNewIncident] = useState({
     type: "medical",
     severity: "High",
@@ -75,11 +137,11 @@ const CommandCenter = ({ token, role, username, onLogout }: CommandCenterProps) 
     endNode: "Restrooms North",
     accessible: false
   });
-  const [computedRoute, setComputedRoute] = useState<any | null>(null);
+  const [computedRoute, setComputedRoute] = useState<Record<string, unknown> | null>(null);
 
   // Copilot Interactive Chat state
   const [chatMessage, setChatMessage] = useState("");
-  const [chatLog, setChatLog] = useState<any[]>(() => {
+  const [chatLog, setChatLog] = useState<ChatMessage[]>(() => {
     const greetingMap: { [key: string]: string } = {
       fan: "Hello Visitor! Welcome to Azteca Stadium. I can help you find gate queues, concessions, transport options, or restroom locations. Ask me anything!",
       volunteer: `Hello ${username || 'Volunteer'}. I am here to help you coordinate shifts, locate tasks, or assist with crowd routes. Ask me anything!`,
@@ -332,7 +394,7 @@ const CommandCenter = ({ token, role, username, onLogout }: CommandCenterProps) 
       const res = await fetch('/api/volunteer/shifts');
       if (res.ok) {
         const data = await res.json();
-        const myShift = data.find((shift: any) => shift.user.username === username);
+        const myShift = data.find((shift: VolunteerShift) => shift.user?.username === username);
         if (myShift) {
           setVolunteerShift(myShift);
         }
@@ -360,7 +422,7 @@ const CommandCenter = ({ token, role, username, onLogout }: CommandCenterProps) 
         setVolunteerShift(data);
       }
     } catch (e) {
-      setVolunteerShift((prev: any) => prev ? { ...prev, status: newStatus } : null);
+      setVolunteerShift((prev: VolunteerShift | null) => prev ? { ...prev, status: newStatus } : null);
     } finally {
       setUpdatingVolunteerStatus(false);
     }
@@ -1389,14 +1451,14 @@ const CommandCenter = ({ token, role, username, onLogout }: CommandCenterProps) 
         </main>
 
         {/* Floating Copilot conversational drawer (Gemini/Google Chat style) */}
-        <div className="w-full lg:w-80 border-t lg:border-t-0 lg:border-l border-neutral-200 dark:border-neutral-800 bg-[#f8f9fa] dark:bg-[#181818] p-4 flex flex-col justify-between flex-shrink-0 h-[400px] lg:h-auto transition-colors duration-300">
-          <div>
-            <h3 className="text-xs font-bold uppercase tracking-wider text-neutral-500 dark:text-neutral-400 mb-4 flex items-center gap-1.5 border-b border-neutral-200 dark:border-neutral-800 pb-2">
+        <div className="w-full lg:w-80 border-t lg:border-t-0 lg:border-l border-neutral-200 dark:border-neutral-800 bg-[#f8f9fa] dark:bg-[#181818] p-4 flex flex-col justify-between flex-shrink-0 h-[400px] lg:h-full transition-colors duration-300">
+          <div className="flex flex-col min-h-0 flex-1">
+            <h3 className="flex-shrink-0 text-xs font-bold uppercase tracking-wider text-neutral-500 dark:text-neutral-400 mb-4 flex items-center gap-1.5 border-b border-neutral-200 dark:border-neutral-800 pb-2">
               <MessageSquare className="text-blue-600 dark:text-blue-400 h-4 w-4" />
               Interactive Operations Copilot
             </h3>
 
-            <div className="space-y-3 overflow-y-auto max-h-[250px] lg:max-h-[500px] pr-1.5 scrollbar-thin text-xs">
+            <div className="space-y-3 overflow-y-auto flex-1 pr-1.5 scrollbar-thin text-xs">
               {chatLog.map((chat, idx) => (
                 <div key={idx} className={`p-3 rounded-2xl max-w-[85%] ${chat.sender === 'copilot' ? 'bg-neutral-100 dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 text-neutral-800 dark:text-neutral-200 mr-auto rounded-tl-none' : 'bg-blue-600 dark:bg-[#a8c7fa] text-white dark:text-[#0b57d0] font-semibold ml-auto rounded-tr-none shadow-sm'}`}>
                   {chat.text}
@@ -1417,6 +1479,7 @@ const CommandCenter = ({ token, role, username, onLogout }: CommandCenterProps) 
             <button
               type="submit"
               disabled={sendingChat}
+              aria-label="Send message to Copilot"
               className="absolute right-2 top-2 h-7 w-7 bg-blue-600 dark:bg-[#a8c7fa] hover:bg-blue-700 dark:hover:bg-[#8bb2f9] text-white dark:text-[#0b57d0] rounded-full flex items-center justify-center transition-colors"
             >
               <Send className="h-3 w-3" />

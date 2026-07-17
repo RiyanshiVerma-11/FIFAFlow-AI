@@ -13,7 +13,7 @@ interface MapNode {
 
 interface DigitalTwinMapProps {
   nodes: MapNode[];
-  activePath?: any[]; // Array of nodes in routing path
+  activePath?: { lat: number; lng: number }[]; // Array of nodes in routing path
   onNodeClick?: (nodeName: string) => void;
 }
 
@@ -181,7 +181,7 @@ const DigitalTwinMap = ({ nodes, activePath, onNodeClick }: DigitalTwinMapProps)
     }
 
     if (activePath && activePath.length > 0) {
-      const latlngs = activePath.map((node: any) => [node.lat, node.lng] as [number, number]);
+      const latlngs = activePath.map((node: { lat: number; lng: number }) => [node.lat, node.lng] as [number, number]);
       
       const polyline = L.polyline(latlngs, {
         color: '#f9ab00', // Google Yellow accent line

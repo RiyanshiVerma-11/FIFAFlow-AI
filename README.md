@@ -2,7 +2,7 @@
 
 🚀 **Live Demo:** [https://fifa-flow-ai.vercel.app/](https://fifa-flow-ai.vercel.app/)
 
-FIFAFlow AI is an enterprise-grade, event-driven, monolithic AI Operations Platform and Stadium Digital Twin built for the FIFA World Cup 2026. It integrates real-time telemetry, predictive analytics, and Google's Gemini GenAI to assist organizers, emergency responders, volunteers, and visitors in managing crowd flows, navigation routes, transit options, and stadium resources.
+**FIFAFlow AI** is a comprehensive **GenAI-enabled solution** designed to enhance stadium operations and the overall tournament experience for fans, organizers, volunteers, and venue staff during the **FIFA World Cup 2026**. By leveraging **Generative AI** powered by Google Gemini, the platform fundamentally improves **navigation, crowd management, accessibility, transportation, sustainability, multilingual assistance, operational intelligence, and real-time decision support**.
 
 ---
 
