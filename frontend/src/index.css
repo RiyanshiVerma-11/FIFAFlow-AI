@@ -1,0 +1,111 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    @apply bg-[#f8f9fa] text-[#202124] dark:bg-[#0f0f0f] dark:text-[#e3e3e3] font-sans antialiased overflow-x-hidden transition-colors duration-300;
+  }
+}
+
+/* Redefining animated-gradient-bg to a premium Google theme */
+.animated-gradient-bg {
+  @apply bg-[#f8f9fa] dark:bg-[#0f0f0f];
+}
+
+/* Custom Google Accent Colors and Triage styling */
+.text-crimson {
+  color: #d93025; /* Google Red */
+}
+.bg-crimson {
+  background-color: #d93025;
+}
+.text-gold {
+  color: #f9ab00; /* Google Yellow */
+}
+.bg-gold {
+  background-color: #f9ab00;
+}
+
+/* Clean UI Cards */
+.glass-panel {
+  @apply bg-white border border-[#dadce0] rounded-2xl shadow-sm transition-all duration-300 dark:bg-[#1e1e1e] dark:border-[#3c4043];
+}
+
+.glass-panel:hover {
+  @apply shadow-md;
+}
+
+/* Google-Style Vibrant Text Gradients (Subtle and Premium) */
+.animated-text-gradient {
+  background: linear-gradient(135deg, #1a73e8 30%, #1e8e3e 50%, #f9ab00 70%, #d93025 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+/* Subtle shadows instead of high glow colors */
+.shadow-glow-blue {
+  box-shadow: 0 1px 2px 0 rgba(60,64,67,0.3), 0 1px 3px 1px rgba(60,64,67,0.15);
+}
+.shadow-glow-emerald {
+  box-shadow: 0 1px 2px 0 rgba(30,142,62,0.3), 0 1px 3px 1px rgba(30,142,62,0.15);
+}
+.shadow-glow-crimson {
+  box-shadow: 0 1px 2px 0 rgba(217,48,37,0.3), 0 1px 3px 1px rgba(217,48,37,0.15);
+}
+.shadow-glow-purple {
+  box-shadow: 0 1px 2px 0 rgba(171,71,188,0.3), 0 1px 3px 1px rgba(171,71,188,0.15);
+}
+
+/* Custom Scrollbar styled for Google Workspace */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: #dadce0;
+  border-radius: 9999px;
+  border: 2px solid transparent;
+  background-clip: content-box;
+}
+.dark ::-webkit-scrollbar-thumb {
+  background: #5f6368;
+  border: 2px solid transparent;
+  background-clip: content-box;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #9e9e9e;
+  border: 2px solid transparent;
+  background-clip: content-box;
+}
+.dark ::-webkit-scrollbar-thumb:hover {
+  background: #e3e3e3;
+  border: 2px solid transparent;
+  background-clip: content-box;
+}
+
+/* Accessibility Modes */
+.accessibility-dyslexia * {
+  font-family: 'Comic Sans MS', 'Dyslexic', sans-serif !important;
+  word-spacing: 0.18em !important;
+  letter-spacing: 0.05em !important;
+  line-height: 1.6 !important;
+}
+
+/* Colorblind Filters */
+.colorblind-protanopia {
+  filter: url('#protanopia-filter') !important;
+}
+.colorblind-deuteranopia {
+  filter: url('#deuteranopia-filter') !important;
+}
+.colorblind-tritanopia {
+  filter: url('#tritanopia-filter') !important;
+}
+.contrast-high {
+  filter: contrast(1.3) saturate(1.1);
+}
